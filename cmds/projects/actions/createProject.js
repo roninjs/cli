@@ -13,7 +13,7 @@ async function getWorkingDir( args ) {
   return args[0]
 }
 
-async function copyProjectFiles( target ) {
+async function downloadServerTemplate( target ) {
   
   try {
     await fsPromises.access( target, fs.constants.F_OK )
@@ -23,36 +23,41 @@ async function copyProjectFiles( target ) {
   }
 
   return new Promise( (resolve, reject) => {
-    console.log( `executeNpm: ${target}` )
+    console.log( `downloading template...` )
 
 
-    exec('curl -LJO https://github.com/roninjs/roninjs/archive/master.zip',{ cwd: target }, (error, stdout, stderr) => {
+    exec('curl -LJO https://github.com/roninjs/server-template/archive/master.zip',{ cwd: target }, (error, stdout, stderr) => {
       if (error) {
         console.error(`exec error: ${error}`);
         return reject( error )
       }
 
-      // console.log(`stdout: ${stdout}`);
-      // console.error(`stderr: ${stderr}`);
-
       return resolve()
     })
   })
 
-  // try {
-  //   const templatePath = path.join( __dirname, '../', '/templates' )
+}
 
-  //   await fse.copy( templatePath, target )
+function unzipServerTemplate( target ) {
+  return new Promise( (resolve, reject) => {
+    
+    console.log( `unpacking template files...` )
 
-  // } catch (err) {
-  //   console.error(err)
-  // }
+    exec('unzip server-template-master.zip && cp -r server-template-master/ . && rm -R server-template-master && rm -R server-template-master.zip',{ cwd: target }, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`exec error: ${error}`);
+        return reject( error )
+      }
 
+      return resolve()
+    })
+
+  })
 }
 
 function executeNpm( target ) {
   return new Promise( (resolve, reject) => {
-    console.log( `executeNpm: ${target}` )
+    console.log( `installing dependencies: ${target}` )
 
 
     exec('npm install',{ cwd: target }, (error, stdout, stderr) => {
@@ -60,9 +65,6 @@ function executeNpm( target ) {
         console.error(`exec error: ${error}`);
         return reject( error )
       }
-
-      // console.log(`stdout: ${stdout}`);
-      // console.error(`stderr: ${stderr}`);
 
       return resolve()
     })
@@ -74,9 +76,12 @@ async function createProject( args ) {
 
   console.info( `creating project at: ${wd}` )
 
-  await copyProjectFiles( wd )
-  // await executeNpm( wd )
-  console.log( 'here' )
+  await downloadServerTemplate( wd )
+  await unzipServerTemplate( wd )
+  await executeNpm( wd )
+  
+  console.info( '\nDone.' )
+  console.info( `\nRun the following command to start your server: \n\n  cd ${wd} \n  npm start\n` )
   
 }
 
