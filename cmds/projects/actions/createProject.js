@@ -1,32 +1,80 @@
 const fs = require( 'fs' )
 const fse = require( 'fs-extra' )
+const fp = require( 'fs' ).promises
 const path = require( 'path' )
 const { exec } = require( 'child_process' )
 
 const fsPromises = fs.promises
 
-async function getWorkingDir( args ) {
+async function createProject( args ) {
+  const wd = getWorkingDir( args )
+
+  console.info( `creating project at: ${wd}` )
+  //
+  //  Server Template
+  //
+  const serverPath = `${wd}/server`
+  await downloadServerTemplate( serverPath )
+  await unzipServerTemplate( serverPath )
+  await executeNpm( serverPath )
+  //
+  //  Frontend Template
+  //
+  const uiPath = `${wd}/ui`
+  await downloadUITemplate( uiPath )
+  await unzipUITemplate( uiPath )
+  await executeNpm( uiPath )
+  
+  console.info( '\nDone.' )
+  console.info( `\nRun the following command to start your server: \n\n  cd ${wd} \n  npm start\n` )
+  
+}
+
+function getWorkingDir( args ) {
   if( !args || !args.length ) {
     throw new Error( 'Please enter a path where you want to create the project.' )
   }
 
-  return args[0]
+  const wd = args[0]
+  console.log( wd )
+  if( !fs.existsSync( wd ) ) {
+    if( !fs.mkdirSync( wd, { recursive: true } ) ) {
+      throw new Error( `unable to create ${wd}` )
+    }
+  }
+
+  if( !fs.mkdirSync( `${wd}/server`, { recursive: true } ) ) {
+    throw new Error( `unable to create ${wd}/server` )
+  }
+
+  if( !fs.mkdirSync( `${wd}/ui`, { recursive: true } ) ) {
+    throw new Error( `unable to create ${wd}/ui` )
+  }
+
+  return wd
 }
 
 async function downloadServerTemplate( target ) {
-  
-  try {
-    await fsPromises.access( target, fs.constants.F_OK )
-
-  } catch( error ) {
-    throw new Error( `The path does not exisit. '${target}'` )
-  }
-
   return new Promise( (resolve, reject) => {
     console.log( `downloading template...` )
 
-
     exec('curl -LJO https://github.com/roninjs/server-template/archive/master.zip',{ cwd: target }, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`exec error: ${error}`);
+        return reject( error )
+      }
+
+      return resolve()
+    })
+  })
+
+}
+
+async function downloadUITemplate( target ) {
+  return new Promise( (resolve, reject) => {
+    console.log( `downloading ui template...` )
+
+    exec('curl -LJO https://github.com/roninjs/ui-template/archive/master.zip',{ cwd: target }, (error, stdout, stderr) => {
       if (error) {
         console.error(`exec error: ${error}`);
         return reject( error )
@@ -55,10 +103,26 @@ function unzipServerTemplate( target ) {
   })
 }
 
+function unzipUITemplate( target ) {
+  return new Promise( (resolve, reject) => {
+    
+    console.log( `unpacking template files...` )
+
+    exec('unzip ui-template-master.zip && cp -r ui-template-master/ . && rm -R ui-template-master && rm -R ui-template-master.zip',{ cwd: target }, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`exec error: ${error}`);
+        return reject( error )
+      }
+
+      return resolve()
+    })
+
+  })
+}
+
 function executeNpm( target ) {
   return new Promise( (resolve, reject) => {
     console.log( `installing dependencies: ${target}` )
-
 
     exec('npm install',{ cwd: target }, (error, stdout, stderr) => {
       if (error) {
@@ -69,20 +133,6 @@ function executeNpm( target ) {
       return resolve()
     })
   })
-}
-
-async function createProject( args ) {
-  const wd = await getWorkingDir( args )
-
-  console.info( `creating project at: ${wd}` )
-
-  await downloadServerTemplate( wd )
-  await unzipServerTemplate( wd )
-  await executeNpm( wd )
-  
-  console.info( '\nDone.' )
-  console.info( `\nRun the following command to start your server: \n\n  cd ${wd} \n  npm start\n` )
-  
 }
 
 module.exports = createProject
