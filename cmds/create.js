@@ -34,7 +34,7 @@ async function run( args ) {
     return help()
   }
 
-  const options = largsUtil.parse( optionDefinitions, args )
+  const options = argsUtil.parse( optionDefinitions, args )
   console.log( options )
   if( options.help ) {
     return help()
