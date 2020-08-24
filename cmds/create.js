@@ -3,52 +3,79 @@ const fse = require( 'fs-extra' )
 const fp = require( 'fs' ).promises
 const path = require( 'path' )
 const { exec } = require( 'child_process' )
+const argsUtil = require( './args-util' )
 
 const fsPromises = fs.promises
 
-async function createProject( args ) {
-  const wd = getWorkingDir( args )
+const optionDefinitions = [
+  { name: "noServer" },
+  { name: "noUI" },
+  { name: "help", alias: "h" } 
+]
+
+let usage = `
+Usage: ronin create [OPTIONS] PATH
+
+Create a Ronin.js application
+
+Options:
+      --noServer      Do not include a server project
+      --noUI          Do not include an UI project
+  -h, --help          Display this screen
+`
+
+function help() {
+  console.log( usage )
+  process.exit()
+}
+
+async function run( args ) {
+  if( !args || args.length < 1 ) {
+    return help()
+  }
+
+  const options = largsUtil.parse( optionDefinitions, args )
+  console.log( options )
+  if( options.help ) {
+    return help()
+  }
+
+  if( args[ args.length-1 ].startsWith( '-' ) ) {
+    console.error( '"ronin create" requires a PATH' )
+    return help()
+  }
+
+  const wd = getWorkingDir( args[ args.length-1 ] )
 
   console.info( `creating project at: ${wd}` )
   //
   //  Server Template
   //
-  const serverPath = `${wd}/server`
-  await downloadServerTemplate( serverPath )
-  await unzipServerTemplate( serverPath )
-  await executeNpm( serverPath )
+  if( !options.noServer ) {
+    const serverPath = `${wd}/server`
+    await downloadServerTemplate( serverPath )
+    await unzipServerTemplate( serverPath )
+    await executeNpm( serverPath )
+  }
   //
   //  Frontend Template
   //
-  const uiPath = `${wd}/ui`
-  await downloadUITemplate( uiPath )
-  await unzipUITemplate( uiPath )
-  await executeNpm( uiPath )
+  if( !options.noUI ) {
+    const uiPath = `${wd}/ui`
+    await downloadUITemplate( uiPath )
+    await unzipUITemplate( uiPath )
+    await executeNpm( uiPath )
+  }
   
   console.info( '\nDone.' )
-  console.info( `\nRun the following command to start your server: \n\n  cd ${wd} \n  npm start\n` )
   
 }
 
-function getWorkingDir( args ) {
-  if( !args || !args.length ) {
-    throw new Error( 'Please enter a path where you want to create the project.' )
-  }
-
-  const wd = args[0]
-  console.log( wd )
+function getWorkingDir( wd ) {
   if( !fs.existsSync( wd ) ) {
     if( !fs.mkdirSync( wd, { recursive: true } ) ) {
       throw new Error( `unable to create ${wd}` )
     }
-  }
-
-  if( !fs.mkdirSync( `${wd}/server`, { recursive: true } ) ) {
-    throw new Error( `unable to create ${wd}/server` )
-  }
-
-  if( !fs.mkdirSync( `${wd}/ui`, { recursive: true } ) ) {
-    throw new Error( `unable to create ${wd}/ui` )
   }
 
   return wd
@@ -57,6 +84,10 @@ function getWorkingDir( args ) {
 async function downloadServerTemplate( target ) {
   return new Promise( (resolve, reject) => {
     console.log( `downloading template...` )
+
+    if( !fs.mkdirSync( `${target}`, { recursive: true } ) ) {
+      throw new Error( `unable to create ${target}` )
+    }
 
     exec('curl -LJO https://github.com/roninjs/server-template/archive/master.zip',{ cwd: target }, (error, stdout, stderr) => {
       if (error) {
@@ -73,6 +104,10 @@ async function downloadServerTemplate( target ) {
 async function downloadUITemplate( target ) {
   return new Promise( (resolve, reject) => {
     console.log( `downloading ui template...` )
+
+    if( !fs.mkdirSync( `${target}`, { recursive: true } ) ) {
+      throw new Error( `unable to create ${target}` )
+    }
 
     exec('curl -LJO https://github.com/roninjs/ui-template/archive/master.zip',{ cwd: target }, (error, stdout, stderr) => {
       if (error) {
@@ -135,4 +170,6 @@ function executeNpm( target ) {
   })
 }
 
-module.exports = createProject
+module.exports = {
+  run
+}

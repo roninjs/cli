@@ -1,7 +1,13 @@
 const usage = require( './usage.js' )
-const project = require( './cmds/projects' )
+const createCmd = require( './cmds/create' )
 
-const commands = [ 'help', 'version' ] 
+const commands = [ 
+  '-h', 
+  '--help', 
+  'help', 
+
+  'version' 
+] 
 
 const validCommands = [ 'create', ...commands ]
 
@@ -22,9 +28,15 @@ async function main() {
   try {
     switch (command) {
       case 'create':
-        await project.create( args )
+        await createCmd.run( args )
         break;
-    
+      
+      case 'version':
+        usage.printVersoinAndExit()
+        break;
+
+      case '-h': 
+      case '--help':
       case 'help': 
       default:
         usage.printAndExit()
