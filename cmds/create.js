@@ -65,7 +65,14 @@ async function run( args ) {
     await unzipUITemplate( uiPath )
     await executeNpm( uiPath )
   }
-  
+  //
+  //  Project Compose Template
+  //
+  if( !options.noCompose ) {
+    const composePath = `${wd}`
+    await downloadComposeTemplate( composePath )
+    await unzipComposeTemplate( composePath )
+  }
   console.info( '\nDone.' )
   
 }
@@ -120,6 +127,27 @@ async function downloadUITemplate( target ) {
 
 }
 
+async function downloadComposeTemplate( target ) {
+  return new Promise( async (resolve, reject) => {
+    console.log( `downloading compose template...` )
+
+    const mkdirResult = await fs.mkdirSync( `${target}`, { recursive: true } )
+    if( mkdirResult ) {
+      throw new Error( `unable to create ${target}` )
+    }
+
+    exec('curl -LJO https://github.com/roninjs/compose-template/archive/main.zip',{ cwd: target }, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`exec error: ${error}`);
+        return reject( error )
+      }
+
+      return resolve()
+    })
+  })
+
+}
+
 function unzipServerTemplate( target ) {
   return new Promise( (resolve, reject) => {
     
@@ -143,6 +171,23 @@ function unzipUITemplate( target ) {
     console.log( `unpacking template files...` )
 
     exec('unzip ui-template-master.zip && cp -r ui-template-master/ . && rm -R ui-template-master && rm -R ui-template-master.zip',{ cwd: target }, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`exec error: ${error}`);
+        return reject( error )
+      }
+
+      return resolve()
+    })
+
+  })
+}
+
+function unzipComposeTemplate( target ) {
+  return new Promise( (resolve, reject) => {
+    
+    console.log( `unpacking template files...` )
+
+    exec('unzip compose-template-main.zip && cp -r compose-template-main/ . && rm -R compose-template-main && rm -R compose-template-main.zip',{ cwd: target }, (error, stdout, stderr) => {
       if (error) {
         console.error(`exec error: ${error}`);
         return reject( error )
