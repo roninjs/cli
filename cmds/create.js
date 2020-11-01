@@ -35,7 +35,6 @@ async function run( args ) {
   }
 
   const options = argsUtil.parse( optionDefinitions, args )
-  console.log( options )
   if( options.help ) {
     return help()
   }
